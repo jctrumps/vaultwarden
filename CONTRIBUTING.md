@@ -1,0 +1,3 @@
+# Contributing
+
+Contributions are welcome. Open an issue explaining the change; use focused PRs with documentation updates. Never include live URLs, internal DNS, personal names, SSH private keys, screenshots showing identifiers, API tokens, installation keys, or unredacted logs. Run `bash scripts/check-public.sh` and `tofu fmt -check -recursive infra` before PRs. Run YAML checks if available. Do not test destructive changes on a production VM. For a vulnerability, avoid public exploit details; contact maintainers privately through GitHub security advisories if enabled. No secrets should be sent in issues or pull requests.

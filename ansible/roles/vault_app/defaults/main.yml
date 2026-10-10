@@ -1,0 +1,9 @@
+---
+app_name: vaultwarden
+app_dir: /opt/vaultwarden
+# Restrict origin to localhost; for a separate tunnel VM, use reverse proxy or SSH forwarding.
+app_bind_ip: "127.0.0.1"
+app_port: 8080
+app_domain: "https://vault.example.com"
+# Set these using environment or a private ignored file via -e @...
+app_image_tag: "1.35.4"

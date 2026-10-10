@@ -1,0 +1,19 @@
+name: Public static checks
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run public-content heuristic check
+        run: bash scripts/check-public.sh
+      - name: Validate YAML syntax
+        run: |
+          python -m pip install pyyaml
+          python - <<'PYCODE'
+          import yaml
+          from pathlib import Path
+          for path in list(Path('ansible').rglob('*.yml'))+list(Path('docker').glob('*.yml'))+list(Path('inventory').glob('*.yml')):
+              with path.open() as stream: yaml.safe_load(stream)
+          print('YAML parsed successfully')
+          PYCODE

@@ -1,0 +1,28 @@
+---
+- name: Create app directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0700'
+  loop: ["{{ app_dir }}", "{{ app_dir }}/data"]
+- name: Install compose definition
+  ansible.builtin.copy:
+    src: compose.yml
+    dest: "{{ app_dir }}/compose.yml"
+    mode: '0644'
+- name: Check for private environment file
+  ansible.builtin.stat:
+    path: "{{ app_dir }}/.env"
+  register: vault_env
+- name: Require private environment file
+  ansible.builtin.fail:
+    msg: "Create /opt/vaultwarden/.env on VM based on docker/.env.example, set the actual HTTPS DOMAIN, chmod 600, then rerun."
+  when: not vault_env.stat.exists
+- name: Start app with Docker Compose
+  ansible.builtin.command: docker compose up -d
+  args: { chdir: "{{ app_dir }}" }
+  environment:
+    APP_BIND_IP: "{{ app_bind_ip }}"
+    APP_PORT: "{{ app_port | string }}"
+    APP_IMAGE_TAG: "{{ app_image_tag }}"
+  changed_when: false

@@ -1,0 +1,6 @@
+---
+- name: Install Docker only before private application configuration
+  hosts: vault
+  become: true
+  roles:
+    - docker_host

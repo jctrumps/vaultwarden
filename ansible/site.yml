@@ -1,0 +1,7 @@
+---
+- name: Prepare Vaultwarden VM and install container
+  hosts: vault
+  become: true
+  roles:
+    - docker_host
+    - vault_app

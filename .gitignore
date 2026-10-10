@@ -1,0 +1,27 @@
+# Never commit credentials or real infrastructure inventory
+.env
+.env.*
+!.env.example
+settings.env
+*.tfvars
+!*.tfvars.example
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfplan
+*.retry
+inventory/hosts.ini
+inventory/*.yml
+!inventory/*.example.yml
+id_ed25519*
+*.pem
+*.key
+*.p12
+*.bak
+backups/
+*.sqlite*
+*.db
+.DS_Store
+.vscode/
+inventory/hosts.yml

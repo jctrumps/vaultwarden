@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars (ignored by Git). All values are examples, not real infrastructure.
+proxmox_endpoint = "https://pve.example.invalid:8006/"
+# Prefer TF_VAR_proxmox_api_token environment variable instead of writing the secret here.
+node_name = "pve-node"
+vm_id = 2400
+vm_name = "vault-01"
+template_vm_id = 9000
+datastore_id = "local-lvm"
+bridge = "vmbr0"
+vm_ipv4_address = "192.0.2.50/24"
+vm_ipv4_gateway = "192.0.2.1"
+vm_username = "ubuntu"
+ssh_public_key = "ssh-ed25519 AAAA_REPLACE_WITH_YOUR_PUBLIC_KEY dedicated-vault-key"
