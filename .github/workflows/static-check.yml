@@ -1,19 +1,51 @@
 name: Public static checks
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: '1.12.0'
+      - name: Install validation dependencies
+        run: |
+          python -m pip install pyyaml 'ansible-core>=2.17,<2.21' ansible-lint
+          ansible-galaxy collection install -r ansible/requirements.yml
       - name: Run public-content heuristic check
         run: bash scripts/check-public.sh
+      - name: Test deployment checks and example coverage
+        run: |
+          python scripts/check-docs.py
+          python -m unittest discover -s scripts -p 'test_*.py'
+      - name: Validate OpenTofu
+        run: |
+          tofu fmt -check -recursive opentofu
+          tofu fmt -check - < opentofu/terraform.tfvars.example
+          tofu -chdir=opentofu init -backend=false -input=false -lockfile=readonly
+          tofu -chdir=opentofu validate
       - name: Validate YAML syntax
         run: |
-          python -m pip install pyyaml
           python - <<'PYCODE'
           import yaml
           from pathlib import Path
-          for path in list(Path('ansible').rglob('*.yml'))+list(Path('docker').glob('*.yml'))+list(Path('inventory').glob('*.yml')):
+          for path in list(Path('ansible').rglob('*.yml'))+list(Path('docker').glob('*.yml'))+list(Path('.github').rglob('*.yml')):
               with path.open() as stream: yaml.safe_load(stream)
           print('YAML parsed successfully')
           PYCODE
+      - name: Validate Ansible playbooks
+        working-directory: ansible
+        run: |
+          ansible-playbook -i inventory/hosts.example.yml docker-only.yml --syntax-check
+          ansible-playbook -i inventory/hosts.example.yml site.yml --syntax-check
+          ansible-inventory -i inventory/hosts.example.yml --graph
+          ansible-lint --profile basic site.yml docker-only.yml
+      - name: Validate Compose without private configuration
+        run: docker compose --env-file docker/.env.example -f docker/compose.yml config --no-env-resolution --quiet
+      - name: Build source-only release archive
+        run: python scripts/build-release.py

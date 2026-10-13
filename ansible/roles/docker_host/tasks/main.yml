@@ -1,9 +1,28 @@
 ---
+- name: Require a supported guest OS and architecture
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution in ['Debian', 'Ubuntu']
+      - ansible_architecture in ['x86_64', 'aarch64']
+    fail_msg: "This role supports Debian/Ubuntu on amd64 or arm64."
+- name: Wait for cloud-init to finish before installing packages
+  ansible.builtin.command: cloud-init status --wait
+  changed_when: false
+  async: 300
+  poll: 5
+  when: not ansible_check_mode
 - name: Install packages required for Docker repository
   ansible.builtin.apt:
-    name: [ca-certificates, curl, gnupg, python3]
+    name: [ca-certificates, curl, gnupg, python3, python3-apt]
     update_cache: true
+    cache_valid_time: 3600
     state: present
+- name: Upgrade guest packages during an explicitly requested maintenance run
+  ansible.builtin.apt:
+    upgrade: safe
+    update_cache: true
+    cache_valid_time: 3600
+  when: docker_host_upgrade_packages | bool
 - name: Create keyrings directory
   ansible.builtin.file:
     path: /etc/apt/keyrings
@@ -16,7 +35,9 @@
     mode: '0644'
 - name: Add Docker apt repository
   ansible.builtin.apt_repository:
-    repo: "deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+    repo: >-
+      deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }} signed-by=/etc/apt/keyrings/docker.asc]
+      https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable
     filename: docker
     state: present
 - name: Install Docker Engine and Compose plugin
@@ -29,3 +50,11 @@
     name: docker
     enabled: true
     state: started
+- name: Check whether the guest needs a reboot
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: docker_host_reboot
+- name: Report pending guest reboot
+  ansible.builtin.debug:
+    msg: "Guest updates require a reboot. Schedule it, then verify Docker and Vaultwarden health."
+  when: docker_host_reboot.stat.exists

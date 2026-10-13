@@ -6,7 +6,20 @@ services:
       - "${APP_BIND_IP:-127.0.0.1}:${APP_PORT:-8080}:80"
     env_file:
       - .env
+    environment:
+      DOMAIN: "${DOMAIN:?Set DOMAIN in the private .env file}"
     volumes:
       - ./data:/data
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

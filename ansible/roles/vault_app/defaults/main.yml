@@ -1,9 +1,8 @@
 ---
-app_name: vaultwarden
-app_dir: /opt/vaultwarden
+# Keep the documented app_* inventory interface for existing deployments.
+app_dir: /opt/vaultwarden  # noqa: var-naming[no-role-prefix]
 # Restrict origin to localhost; for a separate tunnel VM, use reverse proxy or SSH forwarding.
-app_bind_ip: "127.0.0.1"
-app_port: 8080
-app_domain: "https://vault.example.com"
-# Set these using environment or a private ignored file via -e @...
-app_image_tag: "1.35.4"
+app_bind_ip: "127.0.0.1"  # noqa: var-naming[no-role-prefix]
+app_port: 8080  # noqa: var-naming[no-role-prefix]
+# Overrides can be set in inventory or via -e; persisted to the guest .env.
+app_image_tag: "1.35.4"  # noqa: var-naming[no-role-prefix]

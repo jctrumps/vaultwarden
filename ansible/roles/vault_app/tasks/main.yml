@@ -1,28 +1,70 @@
 ---
+- name: Validate application settings
+  ansible.builtin.assert:
+    that:
+      - app_dir is match('^/')
+      - app_port | int >= 1
+      - app_port | int <= 65535
+      - app_bind_ip is match('^([0-9]{1,3}\.){3}[0-9]{1,3}$')
+      - app_image_tag is match('^[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}$')
+    fail_msg: "Use an absolute app_dir, an IPv4 bind address, a valid TCP port, and a valid image tag."
 - name: Create app directories
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
+    owner: root
+    group: root
     mode: '0700'
   loop: ["{{ app_dir }}", "{{ app_dir }}/data"]
 - name: Install compose definition
   ansible.builtin.copy:
-    src: compose.yml
+    src: "{{ playbook_dir }}/../docker/compose.yml"
     dest: "{{ app_dir }}/compose.yml"
     mode: '0644'
 - name: Check for private environment file
   ansible.builtin.stat:
     path: "{{ app_dir }}/.env"
-  register: vault_env
-- name: Require private environment file
-  ansible.builtin.fail:
-    msg: "Create /opt/vaultwarden/.env on VM based on docker/.env.example, set the actual HTTPS DOMAIN, chmod 600, then rerun."
-  when: not vault_env.stat.exists
+  register: vault_app_env
+- name: Require a regular private environment file
+  ansible.builtin.assert:
+    that:
+      - vault_app_env.stat.isreg | default(false)
+    fail_msg: "Create {{ app_dir }}/.env on VM based on docker/.env.example, set the actual HTTPS DOMAIN, chmod 600, then rerun."
+- name: Protect private environment file
+  ansible.builtin.file:
+    path: "{{ app_dir }}/.env"
+    owner: root
+    group: root
+    mode: '0600'
+- name: Persist Compose overrides for later manual operations
+  ansible.builtin.lineinfile:
+    path: "{{ app_dir }}/.env"
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}={{ item.value }}"
+  loop:
+    - { key: APP_BIND_IP, value: "{{ app_bind_ip }}" }
+    - { key: APP_PORT, value: "{{ app_port }}" }
+    - { key: APP_IMAGE_TAG, value: "{{ app_image_tag }}" }
+  no_log: true
 - name: Start app with Docker Compose
-  ansible.builtin.command: docker compose up -d
-  args: { chdir: "{{ app_dir }}" }
-  environment:
-    APP_BIND_IP: "{{ app_bind_ip }}"
-    APP_PORT: "{{ app_port | string }}"
-    APP_IMAGE_TAG: "{{ app_image_tag }}"
-  changed_when: false
+  community.docker.docker_compose_v2:
+    project_src: "{{ app_dir }}"
+    state: present
+    wait: true
+    wait_timeout: 120
+  no_log: true
+  register: vault_app_compose
+- name: Wait for the application HTTP endpoint
+  ansible.builtin.uri:
+    url: "http://{{ '127.0.0.1' if app_bind_ip == '0.0.0.0' else app_bind_ip }}:{{ app_port }}/alive"
+    use_proxy: false
+    status_code: 200
+  register: vault_app_health
+  until: vault_app_health.status | default(0) == 200
+  retries: 12
+  delay: 5
+  when: not ansible_check_mode
+- name: Report application deployment status
+  ansible.builtin.debug:
+    msg: "Vaultwarden is ready at http://{{ app_bind_ip }}:{{ app_port }} on the guest; Compose changed={{ vault_app_compose.changed }}."
+  when: not ansible_check_mode

@@ -1,0 +1,3 @@
+---
+# Enable explicitly during a maintenance window; reboot remains an operator action.
+docker_host_upgrade_packages: false

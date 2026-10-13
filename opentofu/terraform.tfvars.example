@@ -1,0 +1,40 @@
+# Copy to terraform.tfvars (ignored). All connection values below are examples.
+proxmox_endpoint = "https://pve.example.com:8006/"
+# Leave commented to let OpenTofu prompt for the sensitive value, or use TF_VAR_proxmox_api_token.
+# proxmox_api_token = "USER@REALM!TOKENID=SECRET"
+proxmox_insecure = false
+proxmox_ssh_user = "root"
+# Optional Proxmox NODE key, independent of the VM key. Null uses the native OS SSH agent.
+# File mode requires an unencrypted provider-supported key. Use forward slashes on Windows.
+ssh_private_key_file = null
+
+node_name          = "pve-node"
+template_node_name = null
+template_vm_id     = 9013 # Replace with your Debian 13 or Ubuntu 24.04 cloud-init template ID.
+vm_id              = 2400
+vm_name            = "vault-01"
+vm_description     = "Vaultwarden managed by OpenTofu and Ansible"
+vm_tags            = ["vaultwarden", "opentofu"]
+
+cpu_cores               = 2
+cpu_type                = "host"
+memory_mb               = 2048
+disk_gb                 = 30
+disk_interface          = "scsi0"
+datastore_id            = "local-lvm"
+cloud_init_datastore_id = null
+guest_agent_enabled     = true
+vm_started              = true
+vm_on_boot              = true
+boot_order              = []
+
+bridge          = "vmbr0"
+vm_ipv4_address = "192.0.2.50/24"
+vm_ipv4_gateway = "192.0.2.1"
+dns_servers     = [] # Set your reachable DNS IPs or verify inherited DNS.
+dns_domain      = null
+
+# This must match ansible_user in ansible/inventory/hosts.yml.
+vm_username    = "debian"
+# Paste the full Windows-generated vault_01_ed25519.pub line here, not its file path.
+ssh_public_key = "ssh-ed25519 AAAA_REPLACE_WITH_YOUR_PUBLIC_KEY vault-project-key"

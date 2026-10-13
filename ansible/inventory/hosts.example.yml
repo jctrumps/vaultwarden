@@ -1,0 +1,8 @@
+all:
+  children:
+    vault:
+      hosts:
+        vault-vm:
+          ansible_host: 192.0.2.50
+          ansible_user: debian
+          ansible_ssh_private_key_file: ~/.ssh/vault_01_ed25519
